@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	rollingTimePattern = "*/5 * * * * ?"
+	rollingTimePattern = "*/10 * * * * ?"
 	backupTimeFormat   = "2006-01-02T15-04-05.000"
 	compressSuffix     = ".gz"
 	defaultMaxSize     = 100
@@ -32,6 +32,9 @@ const (
 var _ io.WriteCloser = (*Logger)(nil)
 
 var (
+	// currentTime exists, so it can be mocked out by tests.
+	currentTime = time.Now
+
 	// DefaultFileMode set the default open mode rw-r--r-- by default
 	DefaultFileMode = os.FileMode(0644)
 	// DefaultFileFlag set the default file flag
@@ -93,7 +96,7 @@ func defaultLogWriter() *Logger {
 		RollingPolicy: VolumeRolling,
 		MaxSize:       15,
 		Compress:      false,
-		LocalTime:     true,
+		LocalTime:     false,
 		fire:          make(chan string),
 		startAt:       time.Now(),
 		cr:            cron.New(),
@@ -148,15 +151,12 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 		)
 	}
 
-	if l.RollingPolicy == TimeRolling {
-		select {
-		case <-l.fire:
-			if err := l.rotate(); err != nil {
-				return 0, err
-			}
-		default:
+	select {
+	case <-l.fire:
+		if err := l.rotate(); err != nil {
+			return 0, err
 		}
-	} else if l.RollingPolicy == VolumeRolling {
+	default:
 		if info, err := l.file.Stat(); err == nil && info.Size()+writeLen > l.max() {
 			if err := l.rotate(); err != nil {
 				return 0, err
@@ -281,7 +281,7 @@ func (l *Logger) millRunOnce() error {
 
 	if l.MaxAge > 0 {
 		diff := time.Duration(int64(24*time.Hour) * int64(l.MaxAge))
-		cutoff := time.Now().Add(-1 * diff)
+		cutoff := currentTime().Add(-1 * diff)
 
 		var remaining []logInfo
 		for _, f := range files {
@@ -371,7 +371,7 @@ func (l *Logger) backupName(dir, filename string, local bool) string {
 	defer l.lock.Unlock()
 	ext := filepath.Ext(filename)
 	prefix := filename[:len(filename)-len(ext)]
-	t := time.Now()
+	t := currentTime()
 	if !local {
 		t = t.UTC()
 	}
