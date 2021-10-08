@@ -151,18 +151,28 @@ func (l *Logger) Write(p []byte) (n int, err error) {
 		)
 	}
 
-	select {
-	case <-l.fire:
-		if err := l.rotate(); err != nil {
-			return 0, err
+	if l.RollingPolicy == TimeRolling {
+		select {
+		case <-l.fire:
+			if err := l.rotate(); err != nil {
+				return 0, err
+			}
+		default:
+			// 防止每天产生的日志文件过大
+			if info, err := l.file.Stat(); err == nil && info.Size()+writeLen > l.max() {
+				if err := l.rotate(); err != nil {
+					return 0, err
+				}
+			}
 		}
-	default:
+	} else if l.RollingPolicy == VolumeRolling {
 		if info, err := l.file.Stat(); err == nil && info.Size()+writeLen > l.max() {
 			if err := l.rotate(); err != nil {
 				return 0, err
 			}
 		}
 	}
+
 	n, err = l.file.Write(p)
 	return
 }
