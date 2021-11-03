@@ -65,8 +65,9 @@ type Logger struct {
 	//	1. WithoutRolling: no rolling will happen
 	//	2. TimeRolling: rolling by time
 	//	3. VolumeRolling: rolling by file size
-	RollingPolicy int `json:"rolling_policy"`
-	MaxSize       int `json:"max_size"`
+	RollingPolicy int    `json:"rolling_policy"`
+	TimePattern   string `json:"time_pattern"`
+	MaxSize       int    `json:"max_size"`
 
 	// Compress will compress log file with gzip
 	Compress bool `json:"compress"`
@@ -129,7 +130,10 @@ func NewWriter(options ...Option) (*Logger, error) {
 	case WithoutRolling:
 		return logger, nil
 	case TimeRolling:
-		if err := logger.cr.AddFunc(rollingTimePattern, func() {
+		if logger.TimePattern == "" {
+			logger.TimePattern = rollingTimePattern
+		}
+		if err := logger.cr.AddFunc(logger.TimePattern, func() {
 			logger.fire <- logger.backupName(logger.LogPath, logger.Filename, logger.LocalTime)
 		}); err != nil {
 			return nil, err

@@ -39,6 +39,12 @@ func WithTimeRolling() Option {
 	}
 }
 
+func WithTimePattern(timePattern string) Option {
+	return func(logger *Logger) {
+		logger.TimePattern = timePattern
+	}
+}
+
 func WithCompress() Option {
 	return func(logger *Logger) {
 		logger.Compress = true

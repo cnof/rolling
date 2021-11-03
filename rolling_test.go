@@ -475,6 +475,7 @@ func TestWrite(t *testing.T) {
 		WithCompress(),
 		WithLocalTime(),
 		WithTimeRolling(),
+		WithTimePattern("*/5 * * * * ?"),
 	)
 	_, _ = fmt.Fprintf(writer, "now :%s \n", time.Now().Format("2006-01-02T15-04-05.000"))
 	//wg := sync.WaitGroup{}

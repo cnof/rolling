@@ -15,6 +15,7 @@ func TestExample(t *testing.T) {
 		WithCompress(),
 		WithLocalTime(),
 		WithTimeRolling(),
+		WithTimePattern("*/5 * * * * ?"),
 	)
 	log.SetOutput(writer)
 	log.Println("Hello World")
